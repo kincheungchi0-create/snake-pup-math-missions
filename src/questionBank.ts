@@ -2,13 +2,14 @@ export type Question = {
   id: string
   category: string
   prompt: string
-  options: number[]
-  answer: number
+  options: AnswerValue[]
+  answer: AnswerValue
   explanation: string
   hint: string
   level: number
 }
 
+type AnswerValue = number | string
 type Generated = Omit<Question, 'id' | 'options' | 'level'>
 
 const snakeNames = ['Noodle', 'Stripe', 'Coil', 'Slink', 'Zigzag', 'Ruby', 'Sunny', 'Mango', 'Jade', 'Pepper', 'Twist', 'Comet']
@@ -19,6 +20,15 @@ const treasures = ['candies', 'gems', 'berries', 'shells', 'stars', 'coins', 'le
 const pick = <T,>(list: T[], i: number) => list[((i % list.length) + list.length) % list.length]
 
 const shuffle = (values: number[], seed: number) => {
+  const result = [...values]
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = (seed * 31 + i * 17) % (i + 1)
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
+
+const shuffleValues = <T,>(values: T[], seed: number) => {
   const result = [...values]
   for (let i = result.length - 1; i > 0; i -= 1) {
     const j = (seed * 31 + i * 17) % (i + 1)
@@ -40,6 +50,30 @@ const makeOptions = (answer: number, seed: number) => {
     pool.add(Math.max(0, answer + offset + index))
   })
   return shuffle([...pool].filter((value) => Number.isFinite(value)).slice(0, 4), seed)
+}
+
+const makeWeekdayOptions = (answer: string, days: string[], seed: number) => {
+  const pool = new Set<string>([answer])
+  let offset = 1
+  while (pool.size < 4) {
+    pool.add(days[(days.indexOf(answer) + offset * (seed % 3 + 1)) % days.length])
+    offset += 1
+  }
+  return shuffleValues([...pool], seed)
+}
+
+const permutations3 = (digits: number[]) => {
+  const values: number[] = []
+  digits.forEach((hundreds, i) => {
+    digits.forEach((tens, j) => {
+      digits.forEach((ones, k) => {
+        if (i !== j && i !== k && j !== k) {
+          values.push(hundreds * 100 + tens * 10 + ones)
+        }
+      })
+    })
+  })
+  return values
 }
 
 const categories = [
@@ -90,19 +124,16 @@ const categories = [
       ])).slice(0, 4)
       while (digits.length < 4) digits.push(1 + ((seed + digits.length * 2) % 9))
       if (!digits.some((d) => d % 2 === 1)) digits[0] = 7
-      const oddEnds = digits.filter((d) => d % 2 === 1)
-      const bestEnd = Math.min(...oddEnds)
-      const remainingForLargest = digits.filter((d) => d !== bestEnd).sort((a, b) => b - a)
-      const largestOdd = remainingForLargest[0] * 100 + remainingForLargest[1] * 10 + bestEnd
-      const smallestDigits = [...digits].sort((a, b) => a - b).slice(0, 3)
-      const smallest = smallestDigits[0] * 100 + smallestDigits[1] * 10 + smallestDigits[2]
+      const candidates = permutations3(digits)
+      const largestOdd = Math.max(...candidates.filter((value) => value % 2 === 1))
+      const smallest = Math.min(...candidates)
       const answer = largestOdd - smallest
       return {
         category: this.name,
         hint: this.hint,
         prompt: `Use digits ${digits.join(', ')}. Make the largest 3-digit odd number with no repeated digit. Then make the smallest 3-digit number. What is the difference?`,
         answer,
-        explanation: `The largest odd number is ${largestOdd}. The smallest 3-digit number is ${smallest}. The difference is ${largestOdd} - ${smallest} = ${answer}.`,
+        explanation: `Check the two tasks independently. The largest 3-digit odd number is ${largestOdd}. The smallest 3-digit number is ${smallest}. The difference is ${largestOdd} - ${smallest} = ${answer}.`,
       }
     },
   },
@@ -165,13 +196,14 @@ const categories = [
       const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       const startIndex = seed % days.length
       const later = 12 + (seed * 11) % 87
-      const answer = (startIndex + later) % 7
+      const answerIndex = (startIndex + later) % 7
+      const answer = days[answerIndex]
       return {
         category: this.name,
         hint: this.hint,
         prompt: `${pick(snakeNames, seed)} starts training on ${days[startIndex]}. The tunnel test is ${later} days later. Which day is it?`,
         answer,
-        explanation: `${later} days later has the same effect as ${later % 7} day(s) later. Count forward from ${days[startIndex]} to get ${days[answer]}.`,
+        explanation: `${later} days later has the same effect as ${later % 7} day(s) later. Count forward from ${days[startIndex]} to get ${answer}.`,
       }
     },
   },
@@ -182,15 +214,21 @@ const categories = [
       const rows = 2 + (seed * 2) % 3
       const cols = 4 + (seed * 3) % 5
       const size = 2 + (seed * 5) % 4
-      const horizontal = rows * Math.max(0, cols - size + 1)
-      const vertical = size <= rows ? (rows - size + 1) * cols : 0
-      const answer = horizontal + vertical
+      const factorPairs = Array.from({ length: size }, (_, n) => n + 1)
+        .filter((height) => size % height === 0)
+        .map((height) => [height, size / height])
+      const counts = factorPairs.map(([height, width]) => {
+        if (height > rows || width > cols) return 0
+        return (rows - height + 1) * (cols - width + 1)
+      })
+      const answer = counts.reduce((sum, count) => sum + count, 0)
+      const factorText = factorPairs.map(([height, width], index) => `${height}x${width}: ${counts[index]}`).join(', ')
       return {
         category: this.name,
         hint: this.hint,
         prompt: `A snake puzzle board has ${rows} rows and ${cols} columns of small squares. How many rectangles use exactly ${size} small squares?`,
         answer,
-        explanation: `Horizontal rectangles: ${horizontal}. Vertical rectangles: ${vertical}. Total = ${answer}.`,
+        explanation: `Rectangles with area ${size} can have these sizes: ${factorText}. Total = ${answer}.`,
       }
     },
   },
@@ -245,10 +283,13 @@ export const questions: Question[] = Array.from({ length: 600 }, (_, index) => {
   const category = categories[index % categories.length]
   const seed = index * 19 + Math.floor(index / categories.length) * 7
   const generated = category.make(seed)
+  const options = typeof generated.answer === 'number'
+    ? makeOptions(generated.answer, seed)
+    : makeWeekdayOptions(generated.answer, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], seed)
   return {
     ...generated,
     id: `mission-${index + 1}`,
-    options: makeOptions(generated.answer, seed),
+    options,
     level: Math.floor(index / 120) + 1,
   }
 })

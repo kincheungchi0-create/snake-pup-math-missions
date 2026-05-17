@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import './App.css'
 import { categoryNames, questions, type Question } from './questionBank'
 
+type AnswerValue = Question['answer']
+
 const snakeArt = [
   '/openclipart-353915.svg',
   '/openclipart-204488.svg',
@@ -32,7 +34,7 @@ function getQuestion(pool: Question[], index: number) {
 export default function App() {
   const [category, setCategory] = useState('All Missions')
   const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selected, setSelected] = useState<AnswerValue | null>(null)
   const [score, setScore] = useState(0)
   const [answered, setAnswered] = useState(0)
   const [streak, setStreak] = useState(0)
@@ -48,7 +50,7 @@ export default function App() {
   const progress = Math.round(((index % pool.length) / pool.length) * 100)
   const snake = snakeArt[index % snakeArt.length]
 
-  const choose = (value: number) => {
+  const choose = (value: AnswerValue) => {
     if (isAnswered) return
     setSelected(value)
     setAnswered((current) => current + 1)
