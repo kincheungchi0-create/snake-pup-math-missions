@@ -87,95 +87,101 @@ export default function App() {
         <div className="hero-copy">
           <p className="eyebrow">Math Olympiad Rescue Quest</p>
           <h1>Pup & Snake Math Missions</h1>
-          <p className="intro">
-            Click an answer, get instant feedback, then read the explanation before the next mission.
-          </p>
         </div>
         <div className="mascots">
           <PupBadge />
           <img src={snake} alt="cartoon snake" />
         </div>
-      </section>
-
-      <section className="dashboard">
-        <div className="stat">
-          <span>Score</span>
-          <strong>{score}/{answered || 0}</strong>
-        </div>
-        <div className="stat">
-          <span>Streak</span>
-          <strong>{streak}</strong>
-        </div>
-        <div className="stat">
-          <span>Question Bank</span>
-          <strong>{pool.length}</strong>
-        </div>
-      </section>
-
-      <section className="category-panel" aria-label="question categories">
-        {['All Missions', ...categoryNames].map((name) => (
-          <button
-            key={name}
-            className={name === category ? 'active' : ''}
-            onClick={() => changeCategory(name)}
-            type="button"
-          >
-            {name}
-          </button>
-        ))}
-      </section>
-
-      <section className="mission-card">
-        <div className="mission-top">
-          <div>
-            <p className="category">{question.category}</p>
-            <h2>Mission {index + 1}</h2>
+        <section className="dashboard" aria-label="score board">
+          <div className="stat">
+            <span>Score</span>
+            <strong>{score}/{answered || 0}</strong>
           </div>
-          <div className="level">Level {question.level}</div>
-        </div>
-
-        <div className="progress-track" aria-label="progress">
-          <span style={{ width: `${progress}%` }} />
-        </div>
-
-        <p className="question-text">{question.prompt}</p>
-        <p className="hint">Hint: {question.hint}</p>
-
-        <div className="options">
-          {question.options.map((option) => {
-            const state = !isAnswered
-              ? ''
-              : option === question.answer
-                ? 'correct'
-                : option === selected
-                  ? 'wrong'
-                  : 'muted'
-            return (
-              <button
-                key={option}
-                className={state}
-                onClick={() => choose(option)}
-                type="button"
-              >
-                {option}
-              </button>
-            )
-          })}
-        </div>
-
-        {isAnswered && (
-          <div className={isCorrect ? 'feedback correct-box' : 'feedback wrong-box'}>
-            <strong>{isCorrect ? 'Correct! Rescue complete.' : 'Not this time. Try the idea again.'}</strong>
-            <p>{question.explanation}</p>
+          <div className="stat">
+            <span>Streak</span>
+            <strong>{streak}</strong>
           </div>
-        )}
+          <div className="stat">
+            <span>Bank</span>
+            <strong>{pool.length}</strong>
+          </div>
+        </section>
+      </section>
 
-        <div className="actions">
-          <button className="secondary" onClick={reset} type="button">Reset Score</button>
-          <button className="primary" onClick={next} type="button" disabled={!isAnswered}>
-            Next Mission
-          </button>
-        </div>
+      <section className="game-layout">
+        <aside className="category-panel" aria-label="question categories">
+          <h3>Types</h3>
+          {['All Missions', ...categoryNames].map((name) => (
+            <button
+              key={name}
+              className={name === category ? 'active' : ''}
+              onClick={() => changeCategory(name)}
+              type="button"
+            >
+              {name}
+            </button>
+          ))}
+        </aside>
+
+        <section className="mission-card">
+          <div className="mission-top">
+            <div>
+              <p className="category">{question.category}</p>
+              <h2>Mission {index + 1}</h2>
+            </div>
+            <div className="level">Level {question.level}</div>
+          </div>
+
+          <div className="snake-timer" aria-label="practice timer">
+            <div className="timer-label">
+              <span>Snake Timer</span>
+              <span>{progress}% bank progress</span>
+            </div>
+            <div className="timer-track">
+              <span className="timer-fill" />
+              <img key={question.id} src={snake} alt="" />
+            </div>
+          </div>
+
+          <p className="question-text">{question.prompt}</p>
+          <p className="hint">Hint: {question.hint}</p>
+
+          <div className="options">
+            {question.options.map((option) => {
+              const state = !isAnswered
+                ? ''
+                : option === question.answer
+                  ? 'correct'
+                  : option === selected
+                    ? 'wrong'
+                    : 'muted'
+              return (
+                <button
+                  key={option}
+                  className={state}
+                  onClick={() => choose(option)}
+                  type="button"
+                >
+                  {option}
+                </button>
+              )
+            })}
+          </div>
+
+          {isAnswered && (
+            <div className={isCorrect ? 'feedback correct-box' : 'feedback wrong-box'}>
+              <strong>{isCorrect ? 'Correct! Rescue complete.' : 'Not this time. Try the idea again.'}</strong>
+              <p>{question.explanation}</p>
+            </div>
+          )}
+
+          <div className="actions">
+            <button className="secondary" onClick={reset} type="button">Reset Score</button>
+            <button className="primary" onClick={next} type="button" disabled={!isAnswered}>
+              Next Mission
+            </button>
+          </div>
+        </section>
       </section>
     </main>
   )
