@@ -23,3 +23,5 @@ verification-*.png
 *.njsproj
 *.sln
 *.sw?
+
+.vercel
